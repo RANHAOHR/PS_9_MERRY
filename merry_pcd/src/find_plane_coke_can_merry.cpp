@@ -31,17 +31,32 @@
 #include <pcl_utils/pcl_utils.h>  //a local library with some utility fncs
 
 
+#include <iostream> 
+
 using namespace std;
 extern PclUtils *g_pcl_utils_ptr; 
+
+bool got_kinect_image = false; //snapshot indicator
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclKinect_clr_ptr(new pcl::PointCloud<pcl::PointXYZRGB>); //pointer for color version of pointcloud
 
 //this fnc is defined in a separate module, find_indices_of_plane_from_patch.cpp
 extern void find_indices_of_plane_from_patch(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr,
         pcl::PointCloud<pcl::PointXYZ>::Ptr patch_cloud_ptr, vector<int> &indices);
 
+void kinectCB(const sensor_msgs::PointCloud2ConstPtr& cloud) {
+    if (!got_kinect_image) { // once only, to keep the data stable
+        ROS_INFO("got new selected kinect image");
+        pcl::fromROSMsg(*cloud, *pclKinect_clr_ptr);
+        ROS_INFO("image has  %d * %d points", pclKinect_clr_ptr->width, pclKinect_clr_ptr->height);
+        got_kinect_image = true;
+    }
+}
+
 int main(int argc, char** argv) {
     ros::init(argc, argv, "coke_can_finder"); //node name
     ros::NodeHandle nh;
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclKinect_clr_ptr(new pcl::PointCloud<pcl::PointXYZRGB>); //pointer for color version of pointcloud
+    ros::Subscriber pointcloud_subscriber = nh.subscribe("/camera/depth_registered/points", 1, kinectCB);
+    // pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclKinect_clr_ptr(new pcl::PointCloud<pcl::PointXYZRGB>); //pointer for color version of pointcloud
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr plane_pts_ptr(new pcl::PointCloud<pcl::PointXYZRGB>); //pointer for pointcloud of planar points found
     pcl::PointCloud<pcl::PointXYZ>::Ptr selected_pts_cloud_ptr(new pcl::PointCloud<pcl::PointXYZ>); //ptr to selected pts from Rvis tool
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr downsampled_kinect_ptr(new pcl::PointCloud<pcl::PointXYZRGB>); //ptr to hold filtered Kinect image
@@ -52,16 +67,17 @@ int main(int argc, char** argv) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr table_xyz_ptr(new pcl::PointCloud<pcl::PointXYZ>);
 
     vector<int> indices;
+   
 
     //load a PCD file using pcl::io function; alternatively, could subscribe to Kinect messages    
-    string fname = "/home/user/Desktop/EECS476/PS_9/pcd_images/coke_can.pcd";
+    // string fname = "/home/user/Desktop/EECS476/PS_9/pcd_images/coke_can.pcd";
     //cout << "enter pcd file name: "; //prompt to enter file name
     //cin >> fname;
-    if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (fname, *pclKinect_clr_ptr) == -1) //* load the file
-    {
-        ROS_ERROR("Couldn't read file \n");
-        return (-1);
-    }
+    // if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (fname, *pclKinect_clr_ptr) == -1) //* load the file
+    // {
+    //     ROS_ERROR("Couldn't read file \n");
+    //     return (-1);
+    // }
     //PCD file does not seem to record the reference frame;  set frame_id manually
     pclKinect_clr_ptr->header.frame_id = "camera_depth_optical_frame";
 
@@ -108,7 +124,6 @@ int main(int argc, char** argv) {
 
     pcl::toROSMsg(*final_table_cloud_ptr, tablePts); //final table cloud
     //the new cloud is a set of points from original cloud, coplanar with selected patch; display the result
-
 
     sensor_msgs::PointCloud2 canPts;
     ros::Publisher Can = nh.advertise<sensor_msgs::PointCloud2> ("/coke_can_pts", 1);
