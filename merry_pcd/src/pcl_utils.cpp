@@ -1108,20 +1108,20 @@ void PclUtils::seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_
             dy = input_cloud_ptr->points[i].y - can_y;
             dz = input_cloud_ptr->points[i].z - can_z;
             dist = sqrt(dx * dx + dy * dy + dz * dz);
-            if (dist < 1)
+            if (dist < 1)  //in certain range
             {
                 point_color = input_cloud_ptr->points[i].getRGBVector3i();
                 deltaR = abs(point_color[0] - can_color[0]) / 255.0;
                 deltaG = abs(point_color[1] - can_color[1]) / 255.0;
                 deltaB = abs(point_color[2] - can_color[2]) / 255.0;
                 delta_color = sqrt(deltaR * deltaR + deltaG *deltaG  + deltaB * deltaB);
-            if (delta_color < 0.5)
-            {
-                temp_point = input_cloud_ptr->points[i];
+                if (delta_color < 0.5)  // pick the right color if necessary
+                {
+                    temp_point = input_cloud_ptr->points[i];
 
-                coke_can_pts->push_back(temp_point);
+                    coke_can_pts->push_back(temp_point);
+                }
             }
-        }
         }
         
 
