@@ -75,8 +75,6 @@ int main(int argc, char** argv) {
 
     //load a PCD file using pcl::io function; alternatively, could subscribe to Kinect messages    
     string fname = "/home/user/kinect_snapshot.pcd";
-    // cout << "enter pcd file name: "; //prompt to enter file name
-    // cin >> fname;
     if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (fname, *pclKinect_clr_ptr) == -1) //* load the file
     {
         ROS_ERROR("Couldn't read file \n");
