@@ -36,27 +36,31 @@
 using namespace std;
 extern PclUtils *g_pcl_utils_ptr; 
 
-bool got_kinect_image = false; //snapshot indicator
-pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclKinect_clr_ptr(new pcl::PointCloud<pcl::PointXYZRGB>); //pointer for color version of pointcloud
+//bool got_kinect_image = false; //snapshot indicator
+
+//pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclKinect_clr_ptr(new pcl::PointCloud<pcl::PointXYZRGB>); //pointer for color version of pointcloud
 
 //this fnc is defined in a separate module, find_indices_of_plane_from_patch.cpp
 extern void find_indices_of_plane_from_patch(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr,
         pcl::PointCloud<pcl::PointXYZ>::Ptr patch_cloud_ptr, vector<int> &indices);
 
-void kinectCB(const sensor_msgs::PointCloud2ConstPtr& cloud) {
-    if (!got_kinect_image) { // once only, to keep the data stable
-        ROS_INFO("got new selected kinect image");
-        pcl::fromROSMsg(*cloud, *pclKinect_clr_ptr);
-        ROS_INFO("image has  %d * %d points", pclKinect_clr_ptr->width, pclKinect_clr_ptr->height);
-        got_kinect_image = true;
-    }
-}
+// void kinectCB(const sensor_msgs::PointCloud2ConstPtr& cloud) {
+//     if (!got_kinect_image) { // once only, to keep the data stable
+//         ROS_INFO("got new selected kinect image");
+//         pcl::fromROSMsg(*cloud, *pclKinect_clr_ptr);
+//         ROS_INFO("image has  %d * %d points", pclKinect_clr_ptr->width, pclKinect_clr_ptr->height);
+//         got_kinect_image = true;
+//     }
+// }
+
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "coke_can_finder"); //node name
     ros::NodeHandle nh;
-    ros::Subscriber pointcloud_subscriber = nh.subscribe("/camera/depth_registered/points", 1, kinectCB);
-    // pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclKinect_clr_ptr(new pcl::PointCloud<pcl::PointXYZRGB>); //pointer for color version of pointcloud
+    //ros::Subscriber pointcloud_subscriber_ = nh.subscribe("/kinect/depth/points", 1, &kinectCB);
+    //ros::Subscriber real_pointcloud_subscriber = nh.subscribe("/camera/depth_registered/points", 1, kinectCB);
+
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclKinect_clr_ptr(new pcl::PointCloud<pcl::PointXYZRGB>); //pointer for color version of pointcloud
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr plane_pts_ptr(new pcl::PointCloud<pcl::PointXYZRGB>); //pointer for pointcloud of planar points found
     pcl::PointCloud<pcl::PointXYZ>::Ptr selected_pts_cloud_ptr(new pcl::PointCloud<pcl::PointXYZ>); //ptr to selected pts from Rvis tool
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr downsampled_kinect_ptr(new pcl::PointCloud<pcl::PointXYZRGB>); //ptr to hold filtered Kinect image
@@ -70,16 +74,17 @@ int main(int argc, char** argv) {
    
 
     //load a PCD file using pcl::io function; alternatively, could subscribe to Kinect messages    
-    // string fname = "/home/user/Desktop/EECS476/PS_9/pcd_images/coke_can.pcd";
-    //cout << "enter pcd file name: "; //prompt to enter file name
-    //cin >> fname;
-    // if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (fname, *pclKinect_clr_ptr) == -1) //* load the file
-    // {
-    //     ROS_ERROR("Couldn't read file \n");
-    //     return (-1);
-    // }
+    string fname = "/home/user/kinect_snapshot.pcd";
+    // cout << "enter pcd file name: "; //prompt to enter file name
+    // cin >> fname;
+    if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (fname, *pclKinect_clr_ptr) == -1) //* load the file
+    {
+        ROS_ERROR("Couldn't read file \n");
+        return (-1);//camera/depth_registered/points
+    }
     //PCD file does not seem to record the reference frame;  set frame_id manually
-    pclKinect_clr_ptr->header.frame_id = "camera_depth_optical_frame";
+
+    pclKinect_clr_ptr->header.frame_id = "camera_depth_frame";
 
     //will publish  pointClouds as ROS-compatible messages; create publishers; note topics for rviz viewing
     ros::Publisher pubCloud = nh.advertise<sensor_msgs::PointCloud2> ("/pcd", 1);
@@ -96,7 +101,7 @@ int main(int argc, char** argv) {
 
     vox.setLeafSize(0.02f, 0.02f, 0.02f);
     vox.filter(*downsampled_kinect_ptr);
-    cout << "done voxel filtering" << endl;
+    cout << "done voxel filtering" << endl;//camera/depth_registered/points;
 
     cout << "num bytes in original cloud data = " << pclKinect_clr_ptr->points.size() << endl;
     cout << "num bytes in filtered cloud data = " << downsampled_kinect_ptr->points.size() << endl; // ->data.size()<<endl;    

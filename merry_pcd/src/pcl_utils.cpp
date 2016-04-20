@@ -804,8 +804,8 @@ void PclUtils::transform_cloud(Eigen::Affine3f A, pcl::PointCloud<pcl::PointXYZR
 void PclUtils::initializeSubscribers() {
     ROS_INFO("Initializing Subscribers");
 
-    pointcloud_subscriber_ = nh_.subscribe("/kinect/depth/points", 1, &PclUtils::kinectCB, this);
-    real_kinect_subscriber_ = nh_.subscribe("/camera/depth_registered/points", 1, &PclUtils::kinectCB, this);
+    //pointcloud_subscriber_ = nh_.subscribe("/kinect/depth/points", 1, &PclUtils::kinectCB, this);
+    //real_kinect_subscriber_ = nh_.subscribe("/camera/depth_registered/points", 1, &PclUtils::kinectCB, this);
     // add more subscribers here, as needed
 
     // subscribe to "selected_points", which is published by Rviz tool
@@ -909,17 +909,17 @@ void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
      table_pts_cloud->header.frame_id = input_cloud_ptr->header.frame_id;
     table_pts_cloud->is_dense = input_cloud_ptr->is_dense;
     //selest 3 points in camera frame first, needed
-    double pts_1_x = -0.00537778;
-    double pts_1_y = 0.153503000;
-    double pts_1_z = 0.628000000;
+    double pts_1_x = -0.182946;
+    double pts_1_y = -0.235985;
+    double pts_1_z = 1.03673;
 
-    double pts_2_x = 0.226431;
-    double pts_2_y = 0.131731;
-    double pts_2_z = 0.639458;
+    double pts_2_x = 0.0558143;
+    double pts_2_y = -0.23511;
+    double pts_2_z = 1.03458;
 
-    double pts_3_x = 0.174162;  ///actual origin in our stool space
-    double pts_3_y = 0.185791;
-    double pts_3_z = 0.555143;
+    double pts_3_x = -0.0395804;  ///actual origin in our stool space
+    double pts_3_y = -0.0460593;
+    double pts_3_z = 1.0051;
 
     std::vector<double> vec_1;  //vetors in the stool
     std::vector<double> vec_2; 
@@ -953,7 +953,7 @@ void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
     double dist = 0.0;
     double pt_dx = 0.0;
     double pt_dy = 0.0;
-    double pt_dz = 0.0;
+    double pt_dz = 0.0;//camera_depth_frame
     double x = 0.0;
     double y = 0.0;
     double z = 0.0;    
@@ -966,11 +966,11 @@ void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
         pt_dy = input_cloud_ptr->points[i].y - pts_3_y;
         pt_dz = input_cloud_ptr->points[i].z - pts_3_z;
          dot_product = pt_dx * dx + pt_dy * dy + pt_dz * dz;
-         if (dot_product < 0.000001 && dot_product > 0){
+         if (dot_product < 0.0001 && dot_product > 0){
             //ROS_INFO("has point that dot product = 0 !!!");
-
+    
             dist = sqrt(pt_dx * pt_dx + pt_dy * pt_dy + pt_dz * pt_dz); //euclidean dist
-            if (dist < 3){
+            if (dist < 5){
                  temp_point = input_cloud_ptr->points[i];
                 table_pts_cloud->push_back(temp_point);
 
@@ -1012,9 +1012,9 @@ void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
 }
 
 void PclUtils::find_final_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &output_pts_cloud){
-	double centroid_x = 0.174162;  ///actual origin in our stool space
-    double centroid_y = 0.185791;
-    double centroid_z = 0.555143;
+	double centroid_x = -0.0395804;  ///actual origin in our stool space
+    double centroid_y = -0.0460593;
+    double centroid_z = 1.0051;
     double dist = 0.0;
     double dx =0.0;
     double dy =0.0;
@@ -1032,7 +1032,7 @@ void PclUtils::find_final_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
         dy = input_cloud_ptr->points[i].y - centroid_y;
         dz = input_cloud_ptr->points[i].z - centroid_z;
         dist = sqrt(dx * dx + dy * dy + dz * dz);
-        if (dist < 0.32)
+        if (dist < 1)
         {
         	temp_point = input_cloud_ptr->points[i];
 
@@ -1045,9 +1045,9 @@ void PclUtils::find_final_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
 
 void PclUtils::seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &coke_can_pts){
 
-    double can_x = 0.105185;
+    double can_x = -0.0440889;
      double can_y = 0.0353348;
-     double can_z = 0.57975; 
+     double can_z = 0.896; 
 
     double dist = 0.0;
     double dx =0.0;
@@ -1075,14 +1075,14 @@ void PclUtils::seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_
         dy = input_cloud_ptr->points[i].y - can_y;
         dz = input_cloud_ptr->points[i].z - can_z;
         dist = sqrt(dx * dx + dy * dy + dz * dz);
-        if (dist < 0.06)
+        if (dist < 0.1)
         {
         	point_color = input_cloud_ptr->points[i].getRGBVector3i();
             deltaR = abs(point_color[0] - can_color[0]) / 255.0;
             deltaG = abs(point_color[1] - can_color[1]) / 255.0;
             deltaB = abs(point_color[2] - can_color[2]) / 255.0;
             delta_color = sqrt(deltaR * deltaR + deltaG *deltaG  + deltaB * deltaB);
-            if (delta_color < 0.29)
+            if (delta_color < 0.5)
             {
                 temp_point = input_cloud_ptr->points[i];
 
