@@ -24,6 +24,7 @@ pclTransformedSelectedPoints_ptr_(new PointCloud<pcl::PointXYZ>),pclGenPurposeCl
     table_origin[0] = 0.0;
     table_origin[1] = 0.0;
     table_origin[2] = 0.0;
+    can_height = 0.109;
 }
 
 //fnc to read a pcd file and put contents in pclKinect_ptr_: color version
@@ -1058,11 +1059,11 @@ void PclUtils::find_final_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
     }
     int outputsize = output_pts_cloud->points.size();
     ROS_INFO("final_cloud has %d points", outputsize);
+
 }
 
 void PclUtils::seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &coke_can_pts){
 
-    double can_height = 0.109;
     double can_x = table_origin[0];
     double can_y = table_origin[1];
     double can_z = table_origin[2] - can_height; 
@@ -1072,9 +1073,6 @@ void PclUtils::seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_
 
     double in_table_frame_height = 0.0;
     double dist = 0.0;
-    double dx =0.0;
-    double dy =0.0;
-    double dz =0.0;
     double diff = 0.0;
 
     double dot_product = 0.0;
@@ -1101,14 +1099,14 @@ void PclUtils::seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_
         dz = input_cloud_ptr->points[i].z - table_origin[2];
         dot_product = dx * table_normal[0] + dy * table_normal[1] + dz * table_normal[2];
         in_table_frame_height = dot_product/sqrt(table_normal[0] * table_normal[0] + table_normal[1] * table_normal[1] + table_normal[2] * table_normal[2]);
-        diff = in_table_frame_height - can_height
+        diff = in_table_frame_height - can_height;
         if (diff < 0.005 && diff > 0)   //if the point has the height of the can
         {
             dx = input_cloud_ptr->points[i].x - can_x;
             dy = input_cloud_ptr->points[i].y - can_y;
             dz = input_cloud_ptr->points[i].z - can_z;
             dist = sqrt(dx * dx + dy * dy + dz * dz);
-            if (dist < 1)  //in certain range
+            if (dist < 1.5)  //in certain range
             {
                 point_color = input_cloud_ptr->points[i].getRGBVector3i();
                 deltaR = abs(point_color[0] - can_color[0]) / 255.0;
@@ -1137,6 +1135,7 @@ void PclUtils::seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_
     Eigen::Vector3f centroid_ = compute_centroid(can_xyz); // see http://eigen.tuxfamily.org/dox/AsciiQuickReference.txt
    
     cout<<"can top centroid: "<<centroid_.transpose()<<endl;
+
 }
 
 bool PclUtils::is_coke_can(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr){
@@ -1145,28 +1144,69 @@ bool PclUtils::is_coke_can(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_pt
     double y = 0.0;
     double z = 0.0;
 
-    bool is_x;
-    bool is_y;
-    bool is_z;
+    bool no_x;
+    bool no_y;
+    bool no_z;
 
     for (int i = 0; i < can_size; ++i)
     { ////if the number is nada
         x = input_cloud_ptr->points[i].x;
         y = input_cloud_ptr->points[i].y;
         z = input_cloud_ptr->points[i].z;
-        if (x != x){is_x = true;}
-        else {is_x = false;}
+        if (x != x){no_x = true;}
+        else {no_x = false;}
 
-        if (y != y){is_y = true;}
-        else {is_y = false;}
+        if (y != y){no_y = true;}
+        else {no_y = false;}
 
-        if (z != z){is_z = true;}
-        else {is_z = false;}
+        if (z != z){no_z = true;}
+        else {no_z = false;}
 
-        if (is_x || is_y || is_z)
+        if (no_x || no_y || no_z)
         {
             return false;
         }
         else {return true;}
     }
+}
+
+Eigen::Vector3f PclUtils::find_can_bottom(pcl::PointCloud<pcl::PointXYZRGB>::Ptr table_cloud_ptr){
+
+    double norm_table = sqrt(table_normal[0] * table_normal[0] + table_normal[1] * table_normal[1] + table_normal[2] * table_normal[2]);
+    double norm_coke = 0.0;
+    double dot_product = 0.0;
+    double dist_diff = 0.0;
+    double dist = 0.0;
+    double diff = 0.0;
+
+    double dx = 0.0;
+    double dy = 0.0;
+    double dz = 0.0;    
+
+    Eigen::Vector3f can_bottom;
+
+    int input_size = table_cloud_ptr->points.size();    
+    for (int i = 0; i < input_size; ++i)
+    {
+        dx = centroid_[0] - table_cloud_ptr->points[i].x;
+        dy = centroid_[1] - table_cloud_ptr->points[i].y;
+        dz = centroid_[2] - table_cloud_ptr->points[i].z;
+        dist = sqrt(dx * dx + dy * dy + dz * dz);
+        dist_diff = dist - can_height;
+        if (dist_diff > 0 && dist_diff < 0.0001)  ///first want to find a point which is can_height away with the top
+        {
+            dot_product = dx * table_normal[0] + dy * table_normal[1] + dz * table_normal[2];
+            norm_coke = sqrt(dx * dx + dy * dy + dz * dz);
+            diff = dot_product - (norm_table * norm_coke);
+            if (diff > 0 && diff < 0.0001)   ////see if the point is right in the bottom of the can
+            {
+                 can_bottom[0] = table_cloud_ptr->points[i].x;
+                 can_bottom[1] = table_cloud_ptr->points[i].y;
+                 can_bottom[2] = table_cloud_ptr->points[i].z;
+            }
+
+        }
+    }
+    return can_bottom;
+
 }

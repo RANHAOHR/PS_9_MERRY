@@ -135,6 +135,20 @@ int main(int argc, char** argv) {
     pclUtils.seek_coke_can_cloud(pclKinect_clr_ptr, can_pts_cloud_ptr);
     pcl::toROSMsg(*can_pts_cloud_ptr, canPts);
 
+    bool can_exist = pclUtils.is_coke_can(can_pts_cloud_ptr);
+    Eigen::Vector3f can_bottom;
+
+    if (can_exist)
+	{
+	    cout << "coke can detected !" << endl;
+	    can_bottom = pclUtils.find_can_bottom(final_table_cloud_ptr); //find bottom in table
+	    ROS_INFO("The x y z of the can bottom is: (%f, %f, %f)", can_bottom[0], can_bottom[1], can_bottom[2]);
+	}
+	else{
+		cout << "NO coke can!" << endl;
+        
+	}
+
     
     //loop to test for new selected-points inputs and compute and display corresponding planar fits 
     while (ros::ok()) {

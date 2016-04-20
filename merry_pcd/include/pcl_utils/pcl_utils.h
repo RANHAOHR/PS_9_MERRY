@@ -78,6 +78,8 @@ public:
 
     Eigen::Vector3f table_normal;
     Eigen::Vector3f table_origin;
+    double can_height;
+    Eigen::Vector3f find_can_bottom(pcl::PointCloud<pcl::PointXYZRGB>::Ptr table_cloud_ptr);
 // 
 // 
 // 
