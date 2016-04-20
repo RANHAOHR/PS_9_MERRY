@@ -16,6 +16,14 @@ pclTransformedSelectedPoints_ptr_(new PointCloud<pcl::PointXYZ>),pclGenPurposeCl
     initializePublishers();
     got_kinect_cloud_ = false;
     got_selected_points_ = false;
+
+    table_normal[0] = 0.0;   ///set in seek_rough_table_merry
+    table_normal[1] = 0.0;
+    table_normal[2] = 0.0;
+
+    table_origin[0] = 0.0;
+    table_origin[1] = 0.0;
+    table_origin[2] = 0.0;
 }
 
 //fnc to read a pcd file and put contents in pclKinect_ptr_: color version
@@ -804,8 +812,8 @@ void PclUtils::transform_cloud(Eigen::Affine3f A, pcl::PointCloud<pcl::PointXYZR
 void PclUtils::initializeSubscribers() {
     ROS_INFO("Initializing Subscribers");
 
-    //pointcloud_subscriber_ = nh_.subscribe("/kinect/depth/points", 1, &PclUtils::kinectCB, this);
-    //real_kinect_subscriber_ = nh_.subscribe("/camera/depth_registered/points", 1, &PclUtils::kinectCB, this);
+    pointcloud_subscriber_ = nh_.subscribe("/kinect/depth/points", 1, &PclUtils::kinectCB, this);
+    real_kinect_subscriber_ = nh_.subscribe("/camera/depth_registered/points", 1, &PclUtils::kinectCB, this);
     // add more subscribers here, as needed
 
     // subscribe to "selected_points", which is published by Rviz tool
@@ -921,6 +929,12 @@ void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
     double pts_3_y = -0.0460593;
     double pts_3_z = 1.0051;
 
+    double norm_z = -0.4;  //preset the z of the norm of the stool
+
+    table_origin[0] = pts_3_x;
+    table_origin[1] = pts_3_y;
+    table_origin[2] = pts_3_z;
+
     std::vector<double> vec_1;  //vetors in the stool
     std::vector<double> vec_2; 
 
@@ -935,7 +949,6 @@ void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
     vec_2[1] = pts_2_y - pts_3_y;
     vec_2[2] = pts_2_z - pts_3_z;
 
-    double norm_z = 0.4;  //preset the z of the norm of the stool
     //compute norm_y
     double dz = norm_z - pts_3_z;
     double dy = dz * (vec_2[2] * vec_1[0] - vec_1[2] * vec_2[0]);
@@ -945,6 +958,10 @@ void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
     double dx =  -dz * vec_1[2] - dy * vec_1[1];
     dx = dx/vec_1[0];
     double norm_x = dx + pts_3_x;
+
+    table_normal[0] = dx;
+    table_normal[1] = dy;
+    table_normal[2] = dz;
 
     //now pick points from input
     int input_size = input_cloud_ptr->points.size();
@@ -1012,9 +1029,9 @@ void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
 }
 
 void PclUtils::find_final_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &output_pts_cloud){
-	double centroid_x = -0.0395804;  ///actual origin in our stool space
-    double centroid_y = -0.0460593;
-    double centroid_z = 1.0051;
+	double centroid_x = table_origin[0];  ///actual origin in our stool space
+    double centroid_y = table_origin[1];
+    double centroid_z = table_origin[2];
     double dist = 0.0;
     double dx =0.0;
     double dy =0.0;
@@ -1045,19 +1062,27 @@ void PclUtils::find_final_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
 
 void PclUtils::seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &coke_can_pts){
 
-    double can_x = -0.0440889;
-     double can_y = 0.0353348;
-     double can_z = 0.896; 
+    double can_height = 0.109;
+    double can_x = table_origin[0];
+    double can_y = table_origin[1];
+    double can_z = table_origin[2] - can_height; 
+    double dx = 0.0;
+    double dy = 0.0;
+    double dz = 0.0;
 
+    double in_table_frame_height = 0.0;
     double dist = 0.0;
     double dx =0.0;
     double dy =0.0;
     double dz =0.0;
+    double diff = 0.0;
 
+    double dot_product = 0.0;
     pcl::PointXYZRGB temp_point;
 
     coke_can_pts->header.frame_id = input_cloud_ptr->header.frame_id;
     coke_can_pts->is_dense = input_cloud_ptr->is_dense;  
+
 
     Eigen::Vector3i can_color;
     can_color << 254, 254, 254;
@@ -1071,17 +1096,25 @@ void PclUtils::seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_
     int input_size = input_cloud_ptr->points.size();
     for (int i = 0; i < input_size; ++i)
     {
-    	dx = input_cloud_ptr->points[i].x - can_x;  //what about pts_3, still  = 0
-        dy = input_cloud_ptr->points[i].y - can_y;
-        dz = input_cloud_ptr->points[i].z - can_z;
-        dist = sqrt(dx * dx + dy * dy + dz * dz);
-        if (dist < 0.1)
+    	dx = input_cloud_ptr->points[i].x - table_origin[0];  //what about pts_3, still  = 0
+        dy = input_cloud_ptr->points[i].y - table_origin[1];
+        dz = input_cloud_ptr->points[i].z - table_origin[2];
+        dot_product = dx * table_normal[0] + dy * table_normal[1] + dz * table_normal[2];
+        in_table_frame_height = dot_product/sqrt(table_normal[0] * table_normal[0] + table_normal[1] * table_normal[1] + table_normal[2] * table_normal[2]);
+        diff = in_table_frame_height - can_height
+        if (diff < 0.005 && diff > 0)   //if the point has the height of the can
         {
-        	point_color = input_cloud_ptr->points[i].getRGBVector3i();
-            deltaR = abs(point_color[0] - can_color[0]) / 255.0;
-            deltaG = abs(point_color[1] - can_color[1]) / 255.0;
-            deltaB = abs(point_color[2] - can_color[2]) / 255.0;
-            delta_color = sqrt(deltaR * deltaR + deltaG *deltaG  + deltaB * deltaB);
+            dx = input_cloud_ptr->points[i].x - can_x;
+            dy = input_cloud_ptr->points[i].y - can_y;
+            dz = input_cloud_ptr->points[i].z - can_z;
+            dist = sqrt(dx * dx + dy * dy + dz * dz);
+            if (dist < 1)
+            {
+                point_color = input_cloud_ptr->points[i].getRGBVector3i();
+                deltaR = abs(point_color[0] - can_color[0]) / 255.0;
+                deltaG = abs(point_color[1] - can_color[1]) / 255.0;
+                deltaB = abs(point_color[2] - can_color[2]) / 255.0;
+                delta_color = sqrt(deltaR * deltaR + deltaG *deltaG  + deltaB * deltaB);
             if (delta_color < 0.5)
             {
                 temp_point = input_cloud_ptr->points[i];
@@ -1089,6 +1122,9 @@ void PclUtils::seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_
                 coke_can_pts->push_back(temp_point);
             }
         }
+        }
+        
+
     }
     int cansize = coke_can_pts->points.size();
     ROS_INFO("can cloud has %d points", cansize);

@@ -76,6 +76,8 @@ public:
     void fit_points_to_plane(pcl::PointCloud<pcl::PointXYZ>::Ptr input_cloud_ptr,Eigen::Vector3f &plane_normal, double &plane_dist);
     void fit_xformed_selected_pts_to_plane(Eigen::Vector3f &plane_normal, double &plane_dist);  
 
+    Eigen::Vector3f table_normal;
+    Eigen::Vector3f table_origin;
 // 
 // 
 // 
