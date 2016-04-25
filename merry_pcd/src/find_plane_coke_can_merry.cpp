@@ -44,15 +44,6 @@ extern PclUtils *g_pcl_utils_ptr;
 extern void find_indices_of_plane_from_patch(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr,
         pcl::PointCloud<pcl::PointXYZ>::Ptr patch_cloud_ptr, vector<int> &indices);
 
-// void kinectCB(const sensor_msgs::PointCloud2ConstPtr& cloud) {
-//     if (!got_kinect_image) { // once only, to keep the data stable
-//         ROS_INFO("got new selected kinect image");
-//         pcl::fromROSMsg(*cloud, *pclKinect_clr_ptr);
-//         ROS_INFO("image has  %d * %d points", pclKinect_clr_ptr->width, pclKinect_clr_ptr->height);
-//         got_kinect_image = true;
-//     }
-// }
-
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "coke_can_finder"); //node name
@@ -74,16 +65,18 @@ int main(int argc, char** argv) {
    
 
     //load a PCD file using pcl::io function; alternatively, could subscribe to Kinect messages    
-    string fname = "/home/user/kinect_snapshot.pcd";
-    if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (fname, *pclKinect_clr_ptr) == -1) //* load the file
-    {
-        ROS_ERROR("Couldn't read file \n");
-        return (-1);//camera/depth_registered/points
-    }
+    // string fname = "/home/user/kinect_snapshot.pcd";
+    // if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (fname, *pclKinect_clr_ptr) == -1) //* load the file
+    // {
+    //     ROS_ERROR("Couldn't read file \n");
+    //     return (-1);//camera/depth_registered/points
+    // }
     //PCD file does not seem to record the reference frame;  set frame_id manually
+    PclUtils pclUtils(&nh); //instantiate a PclUtils object--a local library w/ some handy fncs
+    g_pcl_utils_ptr = &pclUtils; // make this object shared globally, so above fnc can use it too
 
-    pclKinect_clr_ptr->header.frame_id = "camera_depth_frame";
-
+    //pclKinect_clr_ptr->header.frame_id = "camera_depth_frame";
+    pclUtils.get_kinect_points(pclKinect_clr_ptr);
     //will publish  pointClouds as ROS-compatible messages; create publishers; note topics for rviz viewing
     ros::Publisher pubCloud = nh.advertise<sensor_msgs::PointCloud2> ("/pcd", 1);
     ros::Publisher pubPlane = nh.advertise<sensor_msgs::PointCloud2> ("planar_pts", 1);
@@ -105,16 +98,13 @@ int main(int argc, char** argv) {
     cout << "num bytes in filtered cloud data = " << downsampled_kinect_ptr->points.size() << endl; // ->data.size()<<endl;    
     pcl::toROSMsg(*downsampled_kinect_ptr, downsampled_cloud); //convert to ros message for publication and display
 
-    PclUtils pclUtils(&nh); //instantiate a PclUtils object--a local library w/ some handy fncs
-    g_pcl_utils_ptr = &pclUtils; // make this object shared globally, so above fnc can use it too
-
     cout << " select a patch of points to find corresponding plane..." << endl; //prompt user action
 
 //******************************************************************//
     sensor_msgs::PointCloud2 tablePts; //create a ROS message
     ros::Publisher table = nh.advertise<sensor_msgs::PointCloud2> ("/table_pts", 1);
     
-    pclUtils.seek_rough_table_merry(pclKinect_clr_ptr, rough_table_cloud_ptr);
+    pclUtils.seek_rough_table_merry(pclKinect_clr_ptr, 0.0, rough_table_cloud_ptr);
 
     pclUtils.from_RGB_to_XYZ(rough_table_cloud_ptr, table_xyz_ptr);
     find_indices_of_plane_from_patch(downsampled_kinect_ptr, table_xyz_ptr, indices);    

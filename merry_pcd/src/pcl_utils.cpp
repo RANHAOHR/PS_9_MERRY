@@ -24,6 +24,7 @@ pclTransformedSelectedPoints_ptr_(new PointCloud<pcl::PointXYZ>),pclGenPurposeCl
     table_origin[0] = 0.0;
     table_origin[1] = 0.0;
     table_origin[2] = 0.0;
+
     can_height = 0.109;
 }
 
@@ -917,52 +918,6 @@ void PclUtils::from_RGB_to_XYZ(pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgbCloud, 
 void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &table_pts_cloud){
      table_pts_cloud->header.frame_id = input_cloud_ptr->header.frame_id;
     table_pts_cloud->is_dense = input_cloud_ptr->is_dense;
-    //selest 3 points in camera frame first, needed
-    double pts_1_x = -0.182946;
-    double pts_1_y = -0.235985;
-    double pts_1_z = 1.03673;
-
-    double pts_2_x = 0.0558143;
-    double pts_2_y = -0.23511;
-    double pts_2_z = 1.03458;
-
-    double pts_3_x = -0.0395804;  ///actual origin in our stool space
-    double pts_3_y = -0.0460593;
-    double pts_3_z = 1.0051;
-
-    double norm_z = -0.4;  //preset the z of the norm of the stool
-
-    table_origin[0] = pts_3_x;
-    table_origin[1] = pts_3_y;
-    table_origin[2] = pts_3_z;
-
-    std::vector<double> vec_1;  //vetors in the stool
-    std::vector<double> vec_2; 
-
-    vec_1.resize(3);
-    vec_2.resize(3);
-
-    vec_1[0] = pts_1_x - pts_3_x; //x
-    vec_1[1] = pts_1_y - pts_3_y; //y
-    vec_1[2] = pts_1_z - pts_3_z; //z
-
-    vec_2[0] = pts_2_x - pts_3_x;
-    vec_2[1] = pts_2_y - pts_3_y;
-    vec_2[2] = pts_2_z - pts_3_z;
-
-    //compute norm_y
-    double dz = norm_z - pts_3_z;
-    double dy = dz * (vec_2[2] * vec_1[0] - vec_1[2] * vec_2[0]);
-    dy = dy/(vec_1[1] * vec_2[0] - vec_2[1] * vec_1[0]);
-    double norm_y = dy + pts_3_y;
-    //compute norm_x
-    double dx =  -dz * vec_1[2] - dy * vec_1[1];
-    dx = dx/vec_1[0];
-    double norm_x = dx + pts_3_x;
-
-    table_normal[0] = dx;
-    table_normal[1] = dy;
-    table_normal[2] = dz;
 
     //now pick points from input
     int input_size = input_cloud_ptr->points.size();
@@ -980,10 +935,10 @@ void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
     pcl::PointXYZRGB temp_point;
 
     for(int i = 0; i < input_size; ++i){
-        pt_dx = input_cloud_ptr->points[i].x - pts_3_x;  //what about pts_3, still  = 0
-        pt_dy = input_cloud_ptr->points[i].y - pts_3_y;
-        pt_dz = input_cloud_ptr->points[i].z - pts_3_z;
-         dot_product = pt_dx * dx + pt_dy * dy + pt_dz * dz;
+        pt_dx = input_cloud_ptr->points[i].x - table_origin[0];  //what about pts_3, still  = 0
+        pt_dy = input_cloud_ptr->points[i].y - table_origin[1];
+        pt_dz = input_cloud_ptr->points[i].z - table_origin[2];
+         dot_product = pt_dx * table_normal[0] + pt_dy * table_normal[1] + pt_dz * table_normal[2];
          if (dot_product < 0.0001 && dot_product > 0){
             //ROS_INFO("has point that dot product = 0 !!!");
     
@@ -1029,6 +984,61 @@ void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
   ROS_INFO("The height of the camera in stool coordinate is: %f", height);
 }
 
+void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, double table_height, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &table_pts_cloud){
+    double pts_1_x = -0.182946;
+    double pts_1_y = -0.235985;
+    double pts_1_z = 1.03673;
+
+    double pts_2_x = 0.0558143;
+    double pts_2_y = -0.23511;
+    double pts_2_z = 1.03458;
+
+    double pts_3_x = -0.0395804;  ///actual origin in our stool space
+    double pts_3_y = -0.0460593;
+    double pts_3_z = 1.0051;
+
+    double norm_z = -0.4;  //preset the z of the norm of the stool
+
+    table_origin[0] = pts_3_x;
+    table_origin[1] = pts_3_y;
+    table_origin[2] = pts_3_z;
+
+    std::vector<double> vec_1;  //vetors in the stool
+    std::vector<double> vec_2; 
+
+    vec_1.resize(3);
+    vec_2.resize(3);
+
+    vec_1[0] = pts_1_x - table_origin[0]; //x
+    vec_1[1] = pts_1_y - table_origin[1]; //y
+    vec_1[2] = pts_1_z - table_origin[2]; //z
+
+    vec_2[0] = pts_2_x - table_origin[0];
+    vec_2[1] = pts_2_y - table_origin[1];
+    vec_2[2] = pts_2_z - table_origin[2];
+
+    //compute norm_y
+    double dz = norm_z - table_origin[2];
+    double dy = dz * (vec_2[2] * vec_1[0] - vec_1[2] * vec_2[0]);
+    dy = dy/(vec_1[1] * vec_2[0] - vec_2[1] * vec_1[0]);
+    double norm_y = dy + table_origin[1];
+    //compute norm_x
+    double dx =  -dz * vec_1[2] - dy * vec_1[1];
+    dx = dx/vec_1[0];
+    double norm_x = dx + table_origin[0];
+
+    table_normal[0] = dx;
+    table_normal[1] = dy;
+    table_normal[2] = dz;
+
+	if (table_height > 0)
+	{
+		
+	}
+
+
+}
+
 void PclUtils::find_final_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &output_pts_cloud){
 	double centroid_x = table_origin[0];  ///actual origin in our stool space
     double centroid_y = table_origin[1];
@@ -1062,18 +1072,17 @@ void PclUtils::find_final_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
 
 }
 
-void PclUtils::seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &coke_can_pts){
+void PclUtils::seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &coke_can_pts){ 
 
-    double can_x = table_origin[0];
-    double can_y = table_origin[1];
-    double can_z = table_origin[2] - can_height; 
     double dx = 0.0;
     double dy = 0.0;
     double dz = 0.0;
 
     double in_table_frame_height = 0.0;
     double dist = 0.0;
-    double diff = 0.0;
+    double height_diff = 0.0;
+    double dist_diff = 0.0;
+    double des_dis = 0.0;
 
     double dot_product = 0.0;
     pcl::PointXYZRGB temp_point;
@@ -1098,15 +1107,16 @@ void PclUtils::seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_
         dy = input_cloud_ptr->points[i].y - table_origin[1];
         dz = input_cloud_ptr->points[i].z - table_origin[2];
         dot_product = dx * table_normal[0] + dy * table_normal[1] + dz * table_normal[2];
+
         in_table_frame_height = dot_product/sqrt(table_normal[0] * table_normal[0] + table_normal[1] * table_normal[1] + table_normal[2] * table_normal[2]);
-        diff = in_table_frame_height - can_height;
-        if (diff < 0.005 && diff > 0)   //if the point has the height of the can
+        height_diff = fabs(in_table_frame_height - can_height);
+        if (height_diff < 0.005 && height_diff > 0)   //if the point has the height of the can, so the point will be on the can height plane
         {
-            dx = input_cloud_ptr->points[i].x - can_x;
-            dy = input_cloud_ptr->points[i].y - can_y;
-            dz = input_cloud_ptr->points[i].z - can_z;
+
             dist = sqrt(dx * dx + dy * dy + dz * dz);
-            if (dist < 1.5)  //in certain range
+            des_dis = sqrt(1.5 * 1.5 + can_height * can_height);
+            dist_diff = fabs(des_dis - dist);
+            if (dist_diff < 0.005 && dist_diff > 0 )  //in certain range
             {
                 point_color = input_cloud_ptr->points[i].getRGBVector3i();
                 deltaR = abs(point_color[0] - can_color[0]) / 255.0;

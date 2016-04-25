@@ -63,6 +63,7 @@ public:
     void seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &table_pts_cloud);
     void find_final_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &output_pts_cloud);
     void seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &coke_can_pts);
+    void seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, double table_height, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &table_pts_cloud);
     bool is_coke_can(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr);
 
     void from_RGB_to_XYZ(pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgbCloud, pcl::PointCloud<pcl::PointXYZ>::Ptr &xyzCloud);
