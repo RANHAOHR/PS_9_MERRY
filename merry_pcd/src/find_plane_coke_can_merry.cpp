@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
     sensor_msgs::PointCloud2 tablePts; //create a ROS message
     ros::Publisher table = nh.advertise<sensor_msgs::PointCloud2> ("/table_pts", 1);
     
-    pclUtils.seek_rough_table_merry(pclKinect_clr_ptr, 0.0, rough_table_cloud_ptr);
+    pclUtils.seek_rough_table_merry(pclKinect_clr_ptr, 0, rough_table_cloud_ptr);
 
     pclUtils.from_RGB_to_XYZ(rough_table_cloud_ptr, table_xyz_ptr);
     find_indices_of_plane_from_patch(downsampled_kinect_ptr, table_xyz_ptr, indices);    

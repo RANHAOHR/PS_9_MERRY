@@ -903,20 +903,20 @@ void PclUtils::selectCB(const sensor_msgs::PointCloud2ConstPtr& cloud) {
 //**************************** the added func **************************************//
 
 void PclUtils::from_RGB_to_XYZ(pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgbCloud, pcl::PointCloud<pcl::PointXYZ>::Ptr &xyzCloud){
-     int input_size = rgbCloud->points.size();
-     xyzCloud->header = rgbCloud->header;
-     xyzCloud->is_dense = rgbCloud->is_dense;
-     xyzCloud->points.resize(input_size);
+   int input_size = rgbCloud->points.size();
+   xyzCloud->header = rgbCloud->header;
+   xyzCloud->is_dense = rgbCloud->is_dense;
+   xyzCloud->points.resize(input_size);
 
-    for(int i = 0; i < input_size; ++i){
-       xyzCloud->points[i].getVector3fMap() = rgbCloud->points[i].getVector3fMap();
+   for(int i = 0; i < input_size; ++i){
+     xyzCloud->points[i].getVector3fMap() = rgbCloud->points[i].getVector3fMap();
     }
 
 }
 
 
 void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &table_pts_cloud){
-     table_pts_cloud->header.frame_id = input_cloud_ptr->header.frame_id;
+    table_pts_cloud->header.frame_id = input_cloud_ptr->header.frame_id;
     table_pts_cloud->is_dense = input_cloud_ptr->is_dense;
 
     //now pick points from input
@@ -938,50 +938,50 @@ void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
         pt_dx = input_cloud_ptr->points[i].x - table_origin[0];  //what about pts_3, still  = 0
         pt_dy = input_cloud_ptr->points[i].y - table_origin[1];
         pt_dz = input_cloud_ptr->points[i].z - table_origin[2];
-         dot_product = pt_dx * table_normal[0] + pt_dy * table_normal[1] + pt_dz * table_normal[2];
-         if (dot_product < 0.0001 && dot_product > 0){
+        dot_product = pt_dx * table_normal[0] + pt_dy * table_normal[1] + pt_dz * table_normal[2];
+        if (dot_product < 0.0001 && dot_product > 0){
             //ROS_INFO("has point that dot product = 0 !!!");
-    
+
             dist = sqrt(pt_dx * pt_dx + pt_dy * pt_dy + pt_dz * pt_dz); //euclidean dist
             if (dist < 5){
-                 temp_point = input_cloud_ptr->points[i];
-                table_pts_cloud->push_back(temp_point);
+               temp_point = input_cloud_ptr->points[i];
+               table_pts_cloud->push_back(temp_point);
 
-            }
-        }
-    }     
+           }
+       }
+   }     
 
     // stool_pts->push_back(pcl::PointXYZ(0,0,0));
-    int table_pts_size = table_pts_cloud->points.size();
-    ROS_INFO("stool has %d points", table_pts_size);
+   int table_pts_size = table_pts_cloud->points.size();
+   ROS_INFO("stool has %d points", table_pts_size);
     //  pcl::PointXYZRGB stool_pts;
 
-    Eigen::Vector3f plane_normal;
-    double plane_dist;
+   Eigen::Vector3f plane_normal;
+   double plane_dist;
     // for (int i = 0; i < stool_size; ++i)
     // {
     //     cout<<stool_pts->points[i].getVector3fMap().transpose() <<endl; 
     // }
-    fit_points_to_plane(table_pts_cloud, plane_normal, plane_dist);
-    ROS_INFO("plane dist = %f",plane_dist);
-    ROS_INFO("plane normal = (%f, %f, %f)",plane_normal(0),plane_normal(1),plane_normal(2));
-    patch_normal_ = plane_normal;
-    patch_dist_ = plane_dist;
+   fit_points_to_plane(table_pts_cloud, plane_normal, plane_dist);
+   ROS_INFO("plane dist = %f",plane_dist);
+   ROS_INFO("plane normal = (%f, %f, %f)",plane_normal(0),plane_normal(1),plane_normal(2));
+   patch_normal_ = plane_normal;
+   patch_dist_ = plane_dist;
 
 //// camera focal point in stool space
-  double camera_x = 0.0;  
-  double camera_y = 0.0; 
-  double camera_z = 0.0; 
+   double camera_x = 0.0;  
+   double camera_y = 0.0; 
+   double camera_z = 0.0; 
 
-  double table_camera_x  = camera_x - pts_3_x;
-  double table_camera_y  = camera_y - pts_3_y;
-  double table_camera_z  = camera_z - pts_3_z;
+   double table_camera_x  = camera_x - pts_3_x;
+   double table_camera_y  = camera_y - pts_3_y;
+   double table_camera_z  = camera_z - pts_3_z;
 
   //use norm vec
-  double dot_cam = table_camera_x * dx + table_camera_y * dy + table_camera_z * dz;
-  double norm_size = sqrt(dx * dx + dy * dy + dz * dz);
-  double height = dot_cam/norm_size;
-  ROS_INFO("The height of the camera in stool coordinate is: %f", height);
+   double dot_cam = table_camera_x * dx + table_camera_y * dy + table_camera_z * dz;
+   double norm_size = sqrt(dx * dx + dy * dy + dz * dz);
+   double height = dot_cam/norm_size;
+   ROS_INFO("The height of the camera in stool coordinate is: %f", height);
 }
 
 void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, double table_height, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &table_pts_cloud){
@@ -997,7 +997,10 @@ void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
     double pts_3_y = -0.0460593;
     double pts_3_z = 1.0051;
 
-    double norm_z = -0.4;  //preset the z of the norm of the stool
+    double norm_z = -0.4;  //preset the z of the norm of the table
+
+    double dist = 0.0;
+    double dot_product = 0.0;
 
     table_origin[0] = pts_3_x;
     table_origin[1] = pts_3_y;
@@ -1027,22 +1030,41 @@ void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
     dx = dx/vec_1[0];
     double norm_x = dx + table_origin[0];
 
+    double norm = dx * dx + dy * dy + dz * dz;
+
     table_normal[0] = dx;
     table_normal[1] = dy;
     table_normal[2] = dz;
 
-	if (table_height > 0)
-	{
-		
-	}
+    if (table_height > 0)
+    {
+      for (int i = 0; i < input_cloud_ptr->points.size(); ++i)
+      {
+        dx = input_cloud_ptr->points[i].x - table_origin[0];
+        dy = input_cloud_ptr->points[i].y - table_origin[1];
+        dz = input_cloud_ptr->points[i].z - table_origin[2];
+        dist = sqrt(dx * dx + dy * dy + dz * dz);
+            if (fabs(dist - table_height) > 0 && fabs(dist - table_height) <0.00001 )///if the point is table height away
+            {
+                dot_product = dx * table_normal[0] + dy * table_normal[1] + dz * table_normal[2];
+                theta = fabs(dot_product - dist * norm);
+                if (theta > 0 && theta < 0.001)  ////////right above
+                {
+                    ROS_INFO("find new table origin");
+                    table_origin[0] = input_cloud_ptr->points[i].x;
+                    table_origin[1] = input_cloud_ptr->points[i].y;
+                    table_origin[2] = input_cloud_ptr->points[i].z;
+                    break;
+                }
+            }
+        }
+    }
 
+    seek_rough_table_merry(input_cloud_ptr, table_pts_cloud);    
 
 }
 
 void PclUtils::find_final_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &output_pts_cloud){
-	double centroid_x = table_origin[0];  ///actual origin in our stool space
-    double centroid_y = table_origin[1];
-    double centroid_z = table_origin[2];
     double dist = 0.0;
     double dx =0.0;
     double dy =0.0;
@@ -1056,11 +1078,11 @@ void PclUtils::find_final_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
     int input_size = input_cloud_ptr->points.size();
     for (int i = 0; i < input_size; ++i)
     {
-    	dx = input_cloud_ptr->points[i].x - centroid_x;  //what about pts_3, still  = 0
-        dy = input_cloud_ptr->points[i].y - centroid_y;
-        dz = input_cloud_ptr->points[i].z - centroid_z;
+    	dx = input_cloud_ptr->points[i].x - table_origin[0];  //what about pts_3, still  = 0
+        dy = input_cloud_ptr->points[i].y - table_origin[1];
+        dz = input_cloud_ptr->points[i].z - table_origin[2];
         dist = sqrt(dx * dx + dy * dy + dz * dz);
-        if (dist < 1)
+        if (dist < 1) ///////////////////////////////////////the range for finding the table
         {
         	temp_point = input_cloud_ptr->points[i];
 
@@ -1137,13 +1159,12 @@ void PclUtils::seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_
     int cansize = coke_can_pts->points.size();
     ROS_INFO("can cloud has %d points", cansize);
     
-
     // first compute the centroid of the data:
     //Eigen::Vector3f centroid; // make this member var, centroid_
     pcl::PointCloud<pcl::PointXYZ>::Ptr can_xyz(new pcl::PointCloud<pcl::PointXYZ>); 
     from_RGB_to_XYZ(coke_can_pts, can_xyz);
     Eigen::Vector3f centroid_ = compute_centroid(can_xyz); // see http://eigen.tuxfamily.org/dox/AsciiQuickReference.txt
-   
+
     cout<<"can top centroid: "<<centroid_.transpose()<<endl;
 
 }
@@ -1210,13 +1231,15 @@ Eigen::Vector3f PclUtils::find_can_bottom(pcl::PointCloud<pcl::PointXYZRGB>::Ptr
             diff = dot_product - (norm_table * norm_coke);
             if (diff > 0 && diff < 0.0001)   ////see if the point is right in the bottom of the can
             {
-                 can_bottom[0] = table_cloud_ptr->points[i].x;
-                 can_bottom[1] = table_cloud_ptr->points[i].y;
-                 can_bottom[2] = table_cloud_ptr->points[i].z;
-            }
+                ROS_INFO("find can bottom !!");
+               can_bottom[0] = table_cloud_ptr->points[i].x;
+               can_bottom[1] = table_cloud_ptr->points[i].y;
+               can_bottom[2] = table_cloud_ptr->points[i].z;
+               break;
+           }
 
-        }
-    }
-    return can_bottom;
+       }
+   }
+   return can_bottom;
 
 }

@@ -60,13 +60,20 @@ public:
      */
 
     //************************************* merry can seek *************************//
+    Eigen::Vector3f table_normal;
+    Eigen::Vector3f table_origin;
+    double can_height;
+
     void seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &table_pts_cloud);
-    void find_final_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &output_pts_cloud);
-    void seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &coke_can_pts);
     void seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, double table_height, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &table_pts_cloud);
+    void find_final_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &output_pts_cloud);
+
+    void seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &coke_can_pts);   
     bool is_coke_can(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr);
+    Eigen::Vector3f find_can_bottom(pcl::PointCloud<pcl::PointXYZRGB>::Ptr table_cloud_ptr);
 
     void from_RGB_to_XYZ(pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgbCloud, pcl::PointCloud<pcl::PointXYZ>::Ptr &xyzCloud);
+
     
     void fit_points_to_plane(Eigen::MatrixXf points_array, 
         Eigen::Vector3f &plane_normal, 
@@ -77,10 +84,8 @@ public:
     void fit_points_to_plane(pcl::PointCloud<pcl::PointXYZ>::Ptr input_cloud_ptr,Eigen::Vector3f &plane_normal, double &plane_dist);
     void fit_xformed_selected_pts_to_plane(Eigen::Vector3f &plane_normal, double &plane_dist);  
 
-    Eigen::Vector3f table_normal;
-    Eigen::Vector3f table_origin;
-    double can_height;
-    Eigen::Vector3f find_can_bottom(pcl::PointCloud<pcl::PointXYZRGB>::Ptr table_cloud_ptr);
+
+
 // 
 // 
 // 
