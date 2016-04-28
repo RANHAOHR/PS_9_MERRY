@@ -73,6 +73,7 @@ int main(int argc, char** argv) {
     sensor_msgs::PointCloud2 ros_cloud, table_planar_cloud, ros_planar_cloud, downsampled_cloud; //here are ROS-compatible messages    
     while (ros::ok()) {
 
+        cout << "------------------------------------------------" << endl;
     	if (pclUtils.got_kinect_cloud_)
     	{
     		pclUtils.get_kinect_points(pclKinect_clr_ptr);
@@ -115,20 +116,20 @@ int main(int argc, char** argv) {
 
 	        if (can_exist)
 	        {
-	        	cout << "coke can detected !" << endl;
+	        	ROS_WARN("coke can detected !");
 	            can_bottom = pclUtils.find_can_bottom(final_table_cloud_ptr); //find bottom in table
 	            pcl::toROSMsg(*can_pts_cloud_ptr, canPts);
 
 	            ROS_INFO("The x y z of the can bottom is: (%f, %f, %f)", can_bottom[0], can_bottom[1], can_bottom[2]);
 	        }
 	        else{
-	        	cout << "NO coke can!" << endl;
+                ROS_WARN("NO coke can!");
 
 	        }
 	        pclUtils.got_kinect_cloud_ = false;
 	    }
 	    else{
-	    	ROS_INFO("NO Kinect callback !");
+	    	ROS_WARN("NO Kinect callback !");
 	    }
 
         // if (pclUtils.got_selected_points()) { //here if user selected a new patch of points

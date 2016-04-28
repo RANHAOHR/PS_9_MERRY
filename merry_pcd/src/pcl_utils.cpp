@@ -1339,7 +1339,7 @@ void PclUtils::seek_coke_can_cloud( pcl::PointCloud<pcl::PointXYZRGB>::Ptr input
         }
     }
     int cansize = coke_can_pts->points.size();
-    ROS_INFO( "can cloud has %d points", cansize );
+    ROS_WARN( "can cloud has %d points", cansize );
 
     /*
      * first compute the centroid of the data:
