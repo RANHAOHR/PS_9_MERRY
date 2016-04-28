@@ -38,7 +38,7 @@ extern PclUtils *g_pcl_utils_ptr;
 
 //this fnc is defined in a separate module, find_indices_of_plane_from_patch.cpp
 extern void find_indices_of_plane_from_patch(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr,
-        pcl::PointCloud<pcl::PointXYZ>::Ptr patch_cloud_ptr, vector<int> &indices);
+	pcl::PointCloud<pcl::PointXYZ>::Ptr patch_cloud_ptr, vector<int> &indices);
 
 
 int main(int argc, char** argv) {
@@ -71,66 +71,65 @@ int main(int argc, char** argv) {
     ros::Publisher Can = nh.advertise<sensor_msgs::PointCloud2> ("/coke_can_pts", 1);    
 
     sensor_msgs::PointCloud2 ros_cloud, table_planar_cloud, ros_planar_cloud, downsampled_cloud; //here are ROS-compatible messages    
-while (ros::ok()) {
+    while (ros::ok()) {
 
-    if (pclUtils.got_kinect_cloud_)
-    {
-        pclUtils.get_kinect_points(pclKinect_clr_ptr);
-    //will publish  pointClouds as ROS-compatible messages; create publishers; note topics for rviz viewing        
-        pcl::toROSMsg(*pclKinect_clr_ptr, ros_cloud); //convert from PCL cloud to ROS message this way
+    	if (pclUtils.got_kinect_cloud_)
+    	{
+    		pclUtils.get_kinect_points(pclKinect_clr_ptr);
+	    //will publish  pointClouds as ROS-compatible messages; create publishers; note topics for rviz viewing        
+	        pcl::toROSMsg(*pclKinect_clr_ptr, ros_cloud); //convert from PCL cloud to ROS message this way
 
-    //use voxel filtering to downsample the original cloud:
-        cout << "starting voxel filtering" << endl;
-        pcl::VoxelGrid<pcl::PointXYZRGB> vox;
-        vox.setInputCloud(pclKinect_clr_ptr);
+	    //use voxel filtering to downsample the original cloud:
+	        cout << "starting voxel filtering" << endl;
+	        pcl::VoxelGrid<pcl::PointXYZRGB> vox;
+	        vox.setInputCloud(pclKinect_clr_ptr);
 
-        vox.setLeafSize(0.02f, 0.02f, 0.02f);
-        vox.filter(*downsampled_kinect_ptr);
-        cout << "done voxel filtering" << endl;//camera/depth_registered/points;
+	        vox.setLeafSize(0.02f, 0.02f, 0.02f);
+	        vox.filter(*downsampled_kinect_ptr);
+	        cout << "done voxel filtering" << endl;//camera/depth_registered/points;
 
-        cout << "num bytes in original cloud data = " << pclKinect_clr_ptr->points.size() << endl;
-        cout << "num bytes in filtered cloud data = " << downsampled_kinect_ptr->points.size() << endl; // ->data.size()<<endl;    
-        pcl::toROSMsg(*downsampled_kinect_ptr, downsampled_cloud); //convert to ros message for publication and display
+	        cout << "num bytes in original cloud data = " << pclKinect_clr_ptr->points.size() << endl;
+	        cout << "num bytes in filtered cloud data = " << downsampled_kinect_ptr->points.size() << endl; // ->data.size()<<endl;    
+	        pcl::toROSMsg(*downsampled_kinect_ptr, downsampled_cloud); //convert to ros message for publication and display
 
-        //cout << " select a patch of points to find corresponding plane..." << endl; //prompt user action
+	    //*********************************************************************************************************************************//        
+	        pclUtils.seek_rough_table_merry(pclKinect_clr_ptr, 0, rough_table_cloud_ptr);
 
-    //******************************************************************//        
-        pclUtils.seek_rough_table_merry(pclKinect_clr_ptr, 0, rough_table_cloud_ptr);
+	        pclUtils.from_RGB_to_XYZ(rough_table_cloud_ptr, table_xyz_ptr);
+	        find_indices_of_plane_from_patch(downsampled_kinect_ptr, table_xyz_ptr, indices);    
+	        pcl::copyPointCloud(*downsampled_kinect_ptr, indices, *plane_pts_ptr); //extract these pts into new cloud
 
-        pclUtils.from_RGB_to_XYZ(rough_table_cloud_ptr, table_xyz_ptr);
-        find_indices_of_plane_from_patch(downsampled_kinect_ptr, table_xyz_ptr, indices);    
-        pcl::copyPointCloud(*downsampled_kinect_ptr, indices, *plane_pts_ptr); //extract these pts into new cloud
+	        pcl::toROSMsg(*plane_pts_ptr, table_planar_cloud); //rough table cloud
 
-        pcl::toROSMsg(*plane_pts_ptr, table_planar_cloud); //rough table cloud
+	        pcl::PointCloud<pcl::PointXYZRGB>::Ptr final_table_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>); //ptr to table pts from Rvis tool 
+	        pclUtils.find_final_table_merry(plane_pts_ptr, final_table_cloud_ptr);
 
-        pcl::PointCloud<pcl::PointXYZRGB>::Ptr final_table_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>); //ptr to table pts from Rvis tool 
-        pclUtils.find_final_table_merry(plane_pts_ptr, final_table_cloud_ptr);
-
-        pcl::toROSMsg(*final_table_cloud_ptr, tablePts); //final table cloud
-        //the new cloud is a set of points from original cloud, coplanar with selected patch; display the result
+	        pcl::toROSMsg(*final_table_cloud_ptr, tablePts); //final table cloud
+	        //the new cloud is a set of points from original cloud, coplanar with selected patch; display the result
 
 
-        pclUtils.seek_coke_can_cloud(pclKinect_clr_ptr, can_pts_cloud_ptr);
+	        pclUtils.seek_coke_can_cloud(pclKinect_clr_ptr, can_pts_cloud_ptr);
 
-        bool can_exist = pclUtils.is_coke_can(can_pts_cloud_ptr);
-        Eigen::Vector3f can_bottom;
+	        bool can_exist = pclUtils.is_coke_can(can_pts_cloud_ptr);
+	        Eigen::Vector3f can_bottom;
 
-        if (can_exist)
-        {
-            cout << "coke can detected !" << endl;
-            can_bottom = pclUtils.find_can_bottom(final_table_cloud_ptr); //find bottom in table
-            pcl::toROSMsg(*can_pts_cloud_ptr, canPts);
-            ROS_INFO("The x y z of the can bottom is: (%f, %f, %f)", can_bottom[0], can_bottom[1], can_bottom[2]);
-        }
-        else{
-            cout << "NO coke can!" << endl;
-            
-        }
-        pclUtils.got_kinect_cloud_ = false;
-    }
-    else{
-          ROS_INFO("NO Kinect callback !");
-    }
+	        if (can_exist)
+	        {
+	        	cout << "coke can detected !" << endl;
+	            can_bottom = pclUtils.find_can_bottom(final_table_cloud_ptr); //find bottom in table
+	            pcl::toROSMsg(*can_pts_cloud_ptr, canPts);
+
+	            ROS_INFO("The x y z of the can bottom is: (%f, %f, %f)", can_bottom[0], can_bottom[1], can_bottom[2]);
+	        }
+	        else{
+	        	cout << "NO coke can!" << endl;
+
+	        }
+	        pclUtils.got_kinect_cloud_ = false;
+	    }
+	    else{
+	    	ROS_INFO("NO Kinect callback !");
+	    }
 
         // if (pclUtils.got_selected_points()) { //here if user selected a new patch of points
         //     pclUtils.reset_got_selected_points(); // reset for a future trigger
@@ -155,7 +154,7 @@ while (ros::ok()) {
 
         pubCloud.publish(ros_cloud); // will not need to keep republishing if display setting is persistent
 
-        pubDnSamp.publish(downsampled_cloud); //can directly publish a pcl::PointCloud2!!
+        pubDnSamp.publish(downsampled_cloud); 
         
         ros::spinOnce(); //pclUtils needs some spin cycles to invoke callbacks for new selected points
         ros::Duration(4).sleep();
