@@ -47,6 +47,8 @@ using namespace pcl::io;
 class PclUtils
 {
 public:
+
+    bool got_kinect_cloud_;
     PclUtils(ros::NodeHandle* nodehandle); //constructor
 
      // insert doxygen documentation of member fncs;  run "doxywizard" to create documentation
@@ -198,7 +200,7 @@ private:
     pcl::PointCloud<pcl::PointXYZ>::Ptr pclTransformedSelectedPoints_ptr_;
     pcl::PointCloud<pcl::PointXYZ>::Ptr pclGenPurposeCloud_ptr_;
     
-    bool got_kinect_cloud_;
+
     bool got_selected_points_;
     // member methods as well:
     void initializeSubscribers(); // we will define some helper methods to encapsulate the gory details of initializing subscribers, publishers and services

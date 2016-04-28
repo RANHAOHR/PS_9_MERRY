@@ -25,7 +25,7 @@ pclTransformedSelectedPoints_ptr_(new PointCloud<pcl::PointXYZ>),pclGenPurposeCl
     table_origin[1] = 0.0;
     table_origin[2] = 0.0;
 
-    can_height = 0.109;
+    can_height = 0.125;
 }
 
 //fnc to read a pcd file and put contents in pclKinect_ptr_: color version
@@ -836,7 +836,7 @@ void PclUtils::initializePublishers() {
  * callback fnc: receives transmissions of Kinect data; if got_kinect_cloud is false, copy current transmission to internal variable
  * @param cloud [in] messages received from Kinect
  */
-void PclUtils::kinectCB(const sensor_msgs::PointCloud2ConstPtr& cloud) {
+ void PclUtils::kinectCB(const sensor_msgs::PointCloud2ConstPtr& cloud) {
     //cout<<"callback from kinect pointcloud pub"<<endl;
     // convert/copy the cloud only if desired
     if (!got_kinect_cloud_) {
@@ -845,9 +845,9 @@ void PclUtils::kinectCB(const sensor_msgs::PointCloud2ConstPtr& cloud) {
         ROS_INFO("kinectCB: got cloud with %d * %d points", (int) pclKinect_ptr_->width, (int) pclKinect_ptr_->height);
         got_kinect_cloud_ = true; //cue to "main" that callback received and saved a pointcloud 
         //check some colors:
-   int npts_clr = pclKinect_clr_ptr_->points.size();
-    cout<<"Kinect color pts size = "<<npts_clr<<endl;
-    avg_color_ = find_avg_color();
+        int npts_clr = pclKinect_clr_ptr_->points.size();
+        cout<<"Kinect color pts size = "<<npts_clr<<endl;
+        avg_color_ = find_avg_color();
     /*
      for (size_t i = 0; i < pclKinect_clr_ptr_->points.size (); ++i)
      std::cout << " " << (int) pclKinect_clr_ptr_->points[i].r
@@ -968,23 +968,26 @@ void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
    patch_normal_ = plane_normal;
    patch_dist_ = plane_dist;
 
-//// camera focal point in stool space
-   double camera_x = 0.0;  
-   double camera_y = 0.0; 
-   double camera_z = 0.0; 
+// //// camera focal point in stool space
+//    double camera_x = 0.0;  
+//    double camera_y = 0.0; 
+//    double camera_z = 0.0; 
 
-   double table_camera_x  = camera_x - pts_3_x;
-   double table_camera_y  = camera_y - pts_3_y;
-   double table_camera_z  = camera_z - pts_3_z;
+//    double table_camera_x  = camera_x - table_origin[0];
+//    double table_camera_y  = camera_y - table_origin[1];
+//    double table_camera_z  = camera_z - table_origin[2];
 
-  //use norm vec
-   double dot_cam = table_camera_x * dx + table_camera_y * dy + table_camera_z * dz;
-   double norm_size = sqrt(dx * dx + dy * dy + dz * dz);
-   double height = dot_cam/norm_size;
-   ROS_INFO("The height of the camera in stool coordinate is: %f", height);
+//   //use norm vec
+//    double dot_cam = table_camera_x * tar + table_camera_y * dy + table_camera_z * dz;
+//    double norm_size = sqrt(dx * dx + dy * dy + dz * dz);
+//    double height = dot_cam/norm_size;
+//    ROS_INFO("The height of the camera in stool coordinate is: %f", height);
 }
 
 void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, double table_height, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &table_pts_cloud){
+
+    table_pts_cloud->points.clear();
+
     double pts_1_x = -0.182946;
     double pts_1_y = -0.235985;
     double pts_1_z = 1.03673;
@@ -1035,6 +1038,7 @@ void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
     table_normal[0] = dx;
     table_normal[1] = dy;
     table_normal[2] = dz;
+    double theta;
 
     if (table_height > 0)
     {
@@ -1059,12 +1063,14 @@ void PclUtils::seek_rough_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
             }
         }
     }
-
     seek_rough_table_merry(input_cloud_ptr, table_pts_cloud);    
 
 }
 
 void PclUtils::find_final_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &output_pts_cloud){
+
+    output_pts_cloud->points.clear();
+
     double dist = 0.0;
     double dx =0.0;
     double dy =0.0;
@@ -1096,6 +1102,8 @@ void PclUtils::find_final_table_merry(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inp
 
 void PclUtils::seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &coke_can_pts){ 
 
+    coke_can_pts->points.clear();
+
     double dx = 0.0;
     double dy = 0.0;
     double dz = 0.0;
@@ -1111,7 +1119,6 @@ void PclUtils::seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_
 
     coke_can_pts->header.frame_id = input_cloud_ptr->header.frame_id;
     coke_can_pts->is_dense = input_cloud_ptr->is_dense;  
-
 
     Eigen::Vector3i can_color;
     can_color << 254, 254, 254;
@@ -1132,20 +1139,19 @@ void PclUtils::seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_
 
         in_table_frame_height = dot_product/sqrt(table_normal[0] * table_normal[0] + table_normal[1] * table_normal[1] + table_normal[2] * table_normal[2]);
         height_diff = fabs(in_table_frame_height - can_height);
-        if (height_diff < 0.005 && height_diff > 0)   //if the point has the height of the can, so the point will be on the can height plane
+        if (height_diff< 0.05 && height_diff > 0)   //if the point has the height of the can, so the point will be on the can height plane
         {
-
-            dist = sqrt(dx * dx + dy * dy + dz * dz);
-            des_dis = sqrt(1.5 * 1.5 + can_height * can_height);
-            dist_diff = fabs(des_dis - dist);
-            if (dist_diff < 0.005 && dist_diff > 0 )  //in certain range
-            {
+             dist = sqrt(dx * dx + dy * dy + dz * dz);
+             des_dis = sqrt(0.3 * 0.3 + can_height * can_height);
+            // dist_diff = fabs(des_dis - dist);
+             if (dist < des_dis)  //in certain range
+             {                
                 point_color = input_cloud_ptr->points[i].getRGBVector3i();
                 deltaR = abs(point_color[0] - can_color[0]) / 255.0;
                 deltaG = abs(point_color[1] - can_color[1]) / 255.0;
                 deltaB = abs(point_color[2] - can_color[2]) / 255.0;
                 delta_color = sqrt(deltaR * deltaR + deltaG *deltaG  + deltaB * deltaB);
-                if (delta_color < 0.5)  // pick the right color if necessary
+                if (delta_color < 0.3)  // pick the right color if necessary
                 {
                     temp_point = input_cloud_ptr->points[i];
 
@@ -1153,8 +1159,8 @@ void PclUtils::seek_coke_can_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_
                 }
             }
         }
-        
 
+    
     }
     int cansize = coke_can_pts->points.size();
     ROS_INFO("can cloud has %d points", cansize);
@@ -1224,14 +1230,16 @@ Eigen::Vector3f PclUtils::find_can_bottom(pcl::PointCloud<pcl::PointXYZRGB>::Ptr
         dz = centroid_[2] - table_cloud_ptr->points[i].z;
         dist = sqrt(dx * dx + dy * dy + dz * dz);
         dist_diff = dist - can_height;
-        if (dist_diff > 0 && dist_diff < 0.0001)  ///first want to find a point which is can_height away with the top
+        if (dist_diff > 0 && dist_diff < 0.001)  ///first want to find a point which is can_height away with the top
         {
+            ROS_INFO("flag3");
             dot_product = dx * table_normal[0] + dy * table_normal[1] + dz * table_normal[2];
             norm_coke = sqrt(dx * dx + dy * dy + dz * dz);
-            diff = dot_product - (norm_table * norm_coke);
-            if (diff > 0 && diff < 0.0001)   ////see if the point is right in the bottom of the can
+            diff = fabs(dot_product - (norm_table * norm_coke));
+            ROS_INFO("THE DIFF IS : %f", diff);
+            if (diff >= 0 && diff <= 0.2)   ////see if the point is right in the bottom of the can
             {
-                ROS_INFO("find can bottom !!");
+               ROS_INFO("find can bottom !!");
                can_bottom[0] = table_cloud_ptr->points[i].x;
                can_bottom[1] = table_cloud_ptr->points[i].y;
                can_bottom[2] = table_cloud_ptr->points[i].z;
