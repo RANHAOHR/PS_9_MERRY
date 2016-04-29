@@ -110,6 +110,11 @@ int main(int argc, char** argv) {
                 pcl::toROSMsg(*final_table_cloud_ptr, tablePts); //final table cloud
             }
 	        
+            pubCloud.publish(ros_cloud); // will not need to keep republishing if display setting is persistent
+            pubDnSamp.publish(downsampled_cloud); 
+
+            pubPlane.publish(table_planar_cloud); // should be the rough table, to debug            
+            table.publish(tablePts);  //final table
 	        //the new cloud is a set of points from original cloud, coplanar with selected patch; display the result
 
 	        pclUtils.seek_coke_can_cloud(pclKinect_clr_ptr, can_pts_cloud_ptr);
@@ -122,11 +127,12 @@ int main(int argc, char** argv) {
 	        	ROS_WARN("coke can detected !");
 	            can_bottom = pclUtils.find_can_bottom(final_table_cloud_ptr); //find bottom in table
 	            pcl::toROSMsg(*can_pts_cloud_ptr, canPts);
-
+                Can.publish(canPts);
 	            ROS_INFO("The x y z of the can bottom is: (%f, %f, %f)", can_bottom[0], can_bottom[1], can_bottom[2]);
 	        }
 	        else{
                 ROS_WARN("NO coke can!");
+                Can.publish(tablePts);
 
 	        }
 	        pclUtils.got_kinect_cloud_ = false;
@@ -151,14 +157,6 @@ int main(int argc, char** argv) {
         // }   
 
         // pubPlane.publish(ros_planar_cloud); //select points
-
-        pubPlane.publish(table_planar_cloud); // should be the rough table, to debug
-        table.publish(tablePts);  //final table
-        Can.publish(canPts);
-
-        pubCloud.publish(ros_cloud); // will not need to keep republishing if display setting is persistent
-
-        pubDnSamp.publish(downsampled_cloud); 
         
         ros::spinOnce(); //pclUtils needs some spin cycles to invoke callbacks for new selected points
         ros::Duration(3).sleep();
