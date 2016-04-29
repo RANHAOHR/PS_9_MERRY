@@ -54,6 +54,7 @@ int main(int argc, char** argv) {
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr can_pts_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>);
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr table_xyz_ptr(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr final_table_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>); //ptr to table pts from Rvis tool 
 
     vector<int> indices;
 
@@ -102,12 +103,14 @@ int main(int argc, char** argv) {
 
 	        pcl::toROSMsg(*plane_pts_ptr, table_planar_cloud); //rough table cloud
 
-	        pcl::PointCloud<pcl::PointXYZRGB>::Ptr final_table_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>); //ptr to table pts from Rvis tool 
+            final_table_cloud_ptr->points.clear();
 	        pclUtils.find_final_table_merry(plane_pts_ptr, final_table_cloud_ptr);
-
-	        pcl::toROSMsg(*final_table_cloud_ptr, tablePts); //final table cloud
+            if (pclUtils.is_final_cloud)
+            {
+                pcl::toROSMsg(*final_table_cloud_ptr, tablePts); //final table cloud
+            }
+	        
 	        //the new cloud is a set of points from original cloud, coplanar with selected patch; display the result
-
 
 	        pclUtils.seek_coke_can_cloud(pclKinect_clr_ptr, can_pts_cloud_ptr);
 
@@ -158,7 +161,9 @@ int main(int argc, char** argv) {
         pubDnSamp.publish(downsampled_cloud); 
         
         ros::spinOnce(); //pclUtils needs some spin cycles to invoke callbacks for new selected points
-        ros::Duration(4).sleep();
+        ros::Duration(3).sleep();
+
+
     }
 
     return 0;

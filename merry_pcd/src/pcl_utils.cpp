@@ -27,6 +27,8 @@ PclUtils::PclUtils( ros::NodeHandle* nodehandle ) : nh_( *nodehandle ), pclKinec
     table_origin[2] = 0.0;
 
     can_height = 0.125;
+
+    is_final_cloud = false;
 }
 
 
@@ -1144,14 +1146,14 @@ void PclUtils::seek_rough_table_merry( pcl::PointCloud<pcl::PointXYZRGB>::Ptr in
     }
 
     int table_pts_size = table_pts_cloud->points.size();
-    ROS_INFO( "stool has %d points", table_pts_size );
+    ROS_INFO( "table has %d points", table_pts_size );
 
     Eigen::Vector3f plane_normal;
     double      plane_dist;
     /*
-     * for (int i = 0; i < stool_size; ++i)
+     * for (int i = 0; i < table_size; ++i)
      * {
-     *     cout<<stool_pts->points[i].getVector3fMap().transpose() <<endl;
+     *     cout<<table_pts->points[i].getVector3fMap().transpose() <<endl;
      * }
      */
     fit_points_to_plane( table_pts_cloud, plane_normal, plane_dist );
@@ -1187,7 +1189,7 @@ void PclUtils::seek_rough_table_merry( pcl::PointCloud<pcl::PointXYZRGB>::Ptr in
     table_origin[1] = pts_3_y;
     table_origin[2] = pts_3_z;
 
-    std::vector<double> vec_1;                  /* vetors in the stool */
+    std::vector<double> vec_1;                  /* vetors in the table */
     std::vector<double> vec_2;
 
     vec_1.resize( 3 );
@@ -1274,7 +1276,17 @@ void PclUtils::find_final_table_merry( pcl::PointCloud<pcl::PointXYZRGB>::Ptr in
         }
     }
     int outputsize = output_pts_cloud->points.size();
-    ROS_INFO( "final_cloud has %d points", outputsize );
+
+    if (outputsize == 0)
+    {
+        is_final_cloud = false;
+        ROS_WARN(" No nice table found, please adjust your kinect perspective !");
+    }
+    else{
+        ROS_INFO( "final_cloud has %d points", outputsize );
+        is_final_cloud = true;
+    }
+
 }
 
 

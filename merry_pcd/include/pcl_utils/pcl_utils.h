@@ -49,6 +49,8 @@ class PclUtils
 public:
 
     bool got_kinect_cloud_;
+    bool is_final_cloud ;
+    
     PclUtils(ros::NodeHandle* nodehandle); //constructor
 
      // insert doxygen documentation of member fncs;  run "doxywizard" to create documentation
