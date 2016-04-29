@@ -1432,10 +1432,10 @@ Eigen::Vector3f PclUtils::find_can_bottom( pcl::PointCloud<pcl::PointXYZRGB>::Pt
             dot_product = dx * table_normal[0] + dy * table_normal[1] + dz * table_normal[2];
             norm_coke   = sqrt( dx * dx + dy * dy + dz * dz );
             diff        = fabs( dot_product - (norm_table * norm_coke) );
-            ROS_INFO( "THE DIFF IS : %f", diff );
+
             if ( diff >= 0 && diff <= 0.2 )         /* //see if the point is right in the bottom of the can */
             {
-                ROS_INFO( "find can bottom !!" );
+                //ROS_INFO( "find can bottom !!" );
                 can_bottom[0]   = table_cloud_ptr->points[i].x;
                 can_bottom[1]   = table_cloud_ptr->points[i].y;
                 can_bottom[2]   = table_cloud_ptr->points[i].z;
